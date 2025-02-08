@@ -15,7 +15,7 @@ namespace TftpServer::MyBSock {
     : m_fd {fd}, m_ready {fd != dud_socket_fd}, m_closed {not m_ready} {}
 
     UDPServerSocket::~UDPServerSocket() {
-        if (m_ready) {
+        if (not m_ready or m_closed) {
             return;
         }
 

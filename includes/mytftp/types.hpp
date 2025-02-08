@@ -23,6 +23,7 @@ namespace TftpServer::MyTftp {
     };
 
     enum class ErrorCode {
+        ok,
         not_defined,
         file_not_found,
         access_violation,

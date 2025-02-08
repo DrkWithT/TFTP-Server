@@ -59,14 +59,13 @@ namespace TftpServer::MyBSock {
                 temp.status= IOStatus::ok;
             } else {
                 temp.status = IOStatus::pipe_closed;
-                m_closed = true;
             }
 
             return temp;
         }
 
         template <typename BufferT, std::size_t BufferN>
-        [[nodiscard]] IOResult sendTo(const FixedBuffer<BufferT, BufferN>& buffer, std::size_t n) {
+        IOResult sendTo(const FixedBuffer<BufferT, BufferN>& buffer, std::size_t n, const IOResult& prev) {
             if (m_closed) {
                 return { {}, IOStatus::pipe_closed };
             }
@@ -75,7 +74,7 @@ namespace TftpServer::MyBSock {
                 return { {}, IOStatus::invalid_args };
             }
 
-            IOResult temp;
+            IOResult temp = prev;
 
             const auto count = sendto(m_fd, buffer.viewPtr(), n, 0, reinterpret_cast<sockaddr*>(&temp.data), sizeof(sockaddr_in));
 
@@ -83,7 +82,6 @@ namespace TftpServer::MyBSock {
                 temp.status= IOStatus::ok;
             } else {
                 temp.status = IOStatus::pipe_closed;
-                m_closed = true;
             }
 
             return temp;
