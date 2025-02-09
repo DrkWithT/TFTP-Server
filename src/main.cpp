@@ -22,6 +22,8 @@
 static constexpr auto expected_argc = 2;
 
 namespace TftpServer::Driver {
+    static constexpr MyTftp::tftp_u16 dud_peer_tid = 0;
+    static constexpr auto min_free_port = 1024;
     static constexpr auto tftp_chunk_size = 512UL;
     static constexpr auto io_buffer_size = 1024UL;
 
@@ -54,8 +56,8 @@ namespace TftpServer::Driver {
     private:
         TransferContext m_ctx;  // stores transfer session state
         MyBSock::FixedBuffer<MyTftp::tftp_u8, io_buffer_size> m_buffer;
-        MyBSock::UDPServerSocket m_socket;  // for underlying UDP for TFTP messaging 
-        MyTftp::tftp_u16 m_tid;  // tracks transfer by port number ID
+        MyBSock::UDPServerSocket m_socket;  // for underlying UDP for TFTP messaging
+        MyTftp::tftp_u16 m_peer_tid;    // tracks current peer of current transfer
         std::atomic_flag m_persist;
 
         [[nodiscard]] std::u8string readNextFileChunk();
@@ -69,7 +71,7 @@ namespace TftpServer::Driver {
 
     public:
         MyServer() = delete;
-        MyServer(MyBSock::UDPServerSocket socket);
+        MyServer(MyBSock::UDPServerSocket socket) noexcept;
 
         void runService();
     };
@@ -135,7 +137,10 @@ namespace TftpServer::Driver {
 
         const auto peer_tid = io_result.data.sin_port;
 
-        if (peer_tid != m_tid) {
+        /// NOTE: validate transfer ID of peer's sending port number... RFC 1350 states an invalid TID may denote an incorrectly sent message. 
+        if (m_peer_tid == dud_peer_tid) {
+            m_peer_tid = peer_tid;
+        } else if (peer_tid != m_peer_tid) {
             sendError(MyTftp::ErrorCode::unknown_tid, io_result);
             return;
         }
@@ -158,6 +163,11 @@ namespace TftpServer::Driver {
         default:
             sendError(MyTftp::ErrorCode::bad_operation, io_result);
             break;
+        }
+
+        /// NOTE: Prepare to service a new peer by TID after the transfer finishes. The peer could be the same or different.
+        if (m_ctx.done) {
+            m_peer_tid = dud_peer_tid;
         }
     }
 
@@ -306,8 +316,8 @@ namespace TftpServer::Driver {
         m_ctx.done = true;
     }
 
-    MyServer::MyServer(MyBSock::UDPServerSocket socket)
-    : m_ctx {}, m_buffer {}, m_socket {std::move(socket)}, m_tid {0}, m_persist {true} {}
+    MyServer::MyServer(MyBSock::UDPServerSocket socket) noexcept
+    : m_ctx {}, m_buffer {}, m_socket {std::move(socket)}, m_peer_tid {dud_peer_tid}, m_persist {true} {}
 
     void MyServer::runService() {
         auto user_control_fn = [this]() {
@@ -334,12 +344,21 @@ namespace TftpServer::Driver {
 }
 
 int main(int argc, char* argv[]) {
+    using namespace TftpServer;
+
     if (argc != expected_argc) {
         std::cerr << "Invalid argc.\nusage: ./tftpd <port no.>\n";
         return 1;
     }
 
-    TftpServer::Driver::MyServer app {TftpServer::Driver::makeUDPSocket(argv[1])};
+    const auto checked_port_arg = std::atoi(argv[1]);
+
+    if (checked_port_arg <= Driver::min_free_port) {
+        std::cerr << "Invalid port number / transfer ID.\n";
+        return 1;
+    }
+
+    Driver::MyServer app {Driver::makeUDPSocket(argv[1])};
 
     app.runService();
 }
