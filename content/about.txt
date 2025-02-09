@@ -1,0 +1,5 @@
+This is a test file about the current server used.
+Name: tftpd
+By: DrkWithT at GitHub
+Language: C++23
+Platform: macOS
