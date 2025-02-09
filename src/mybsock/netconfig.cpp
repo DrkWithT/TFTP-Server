@@ -24,11 +24,14 @@ namespace TftpServer::MyBSock {
         if (const auto result = getaddrinfo(nullptr, checked_port_cstr, &udp_config, &m_head); result != getaddrinfo_ok) {
             throw std::logic_error {gai_strerror(result)};
         }
+
+        m_cursor = m_head;
     }
 
     SocketGenerator::~SocketGenerator() {
         if (m_head != nullptr) {
             freeaddrinfo(m_head);
+            m_cursor = nullptr;
             m_head = nullptr;
         }
     }

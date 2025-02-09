@@ -73,7 +73,7 @@ namespace TftpServer::Driver {
         MyServer() = delete;
         MyServer(MyBSock::UDPServerSocket socket) noexcept;
 
-        void runService();
+        [[nodiscard]] bool runService();
     };
 
 
@@ -167,6 +167,9 @@ namespace TftpServer::Driver {
 
         /// NOTE: Prepare to service a new peer by TID after the transfer finishes. The peer could be the same or different.
         if (m_ctx.done) {
+            m_ctx.fs.close();
+            m_ctx.block = 0;
+            m_ctx.done = false;
             m_peer_tid = dud_peer_tid;
         }
     }
@@ -180,7 +183,7 @@ namespace TftpServer::Driver {
                 return;
             }
 
-            std::fstream temp_fs {filename, std::ifstream::binary};
+            std::fstream temp_fs {filename, std::fstream::binary | std::fstream::in};
 
             if (not temp_fs.is_open()) {
                 sendError(MyTftp::ErrorCode::file_not_found, prev_io);
@@ -248,7 +251,7 @@ namespace TftpServer::Driver {
                 return;
             }
 
-            std::fstream temp_fs {filename, std::fstream::binary};
+            std::fstream temp_fs {filename, std::fstream::binary | std::fstream::out};
 
             if (not temp_fs.is_open()) {
                 sendError(MyTftp::ErrorCode::access_violation, prev_io);
@@ -317,9 +320,13 @@ namespace TftpServer::Driver {
     }
 
     MyServer::MyServer(MyBSock::UDPServerSocket socket) noexcept
-    : m_ctx {}, m_buffer {}, m_socket {std::move(socket)}, m_peer_tid {dud_peer_tid}, m_persist {true} {}
+    : m_ctx {{}, 0, true}, m_buffer {}, m_socket {std::move(socket)}, m_peer_tid {dud_peer_tid}, m_persist {true} {}
 
-    void MyServer::runService() {
+    bool MyServer::runService() {
+        if (not m_socket.isUsable()) {
+            return false;
+        }
+
         auto user_control_fn = [this]() {
             char stop_choice = 'n';
 
@@ -340,6 +347,7 @@ namespace TftpServer::Driver {
         }
 
         control_thread.join();
+        return true;
     }
 }
 
@@ -360,5 +368,8 @@ int main(int argc, char* argv[]) {
 
     Driver::MyServer app {Driver::makeUDPSocket(argv[1])};
 
-    app.runService();
+    if (not app.runService()) {
+        std::cerr << "Socket setup failed!\n";
+        return 1;
+    }
 }

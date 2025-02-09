@@ -25,18 +25,18 @@ namespace TftpServer::MyBSock {
         bool m_ready;
         bool m_closed;
 
-        [[nodiscard]] bool isUsable() const noexcept;
-
     public:
         UDPServerSocket() noexcept;
         UDPServerSocket(int fd) noexcept;
         ~UDPServerSocket();
-
+        
         UDPServerSocket(const UDPServerSocket& other) = delete;
         UDPServerSocket& operator=(const UDPServerSocket& other) = delete;
-
+        
         UDPServerSocket(UDPServerSocket&& other) noexcept;
         UDPServerSocket& operator=(UDPServerSocket&& other) noexcept;
+
+        [[nodiscard]] bool isUsable() const noexcept;
 
         template <typename BufferT, std::size_t BufferN>
         [[nodiscard]] IOResult recieveFrom(FixedBuffer<BufferT, BufferN>& buffer, std::size_t n) {

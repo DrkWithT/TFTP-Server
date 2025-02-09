@@ -23,7 +23,8 @@ namespace TftpServer::MyBSock {
         m_closed = true;
     }
 
-    UDPServerSocket::UDPServerSocket(UDPServerSocket&& other) noexcept {
+    UDPServerSocket::UDPServerSocket(UDPServerSocket&& other) noexcept
+    : m_fd {dud_socket_fd}, m_ready {false}, m_closed {true} {
         if (&other == this) {
             return;
         }
