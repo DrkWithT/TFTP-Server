@@ -139,14 +139,16 @@ namespace TftpServer::Driver {
         const auto peer_tid = io_result.data.sin_port;
 
         /// NOTE: validate transfer ID of peer's sending port number... RFC 1350 states an invalid TID may denote an incorrectly sent message. 
-        if (m_peer_tid == dud_peer_tid) {
-            m_peer_tid = peer_tid;
-        } else if (peer_tid != m_peer_tid) {
+        if (peer_tid != m_peer_tid and m_peer_tid != dud_peer_tid) {
             sendError(MyTftp::ErrorCode::unknown_tid, io_result);
             return;
+        } else if (m_peer_tid == dud_peer_tid) {
+            std::print("tftpd [LOG]: saved peer-tid\n");
+            m_peer_tid = peer_tid;
         }
 
         const auto opcode = msg.op;
+        std::print("tftpd [LOG]: opcode={}\n", static_cast<int>(opcode));
 
         switch (opcode) {
         case MyTftp::Opcode::rrq:
@@ -317,6 +319,7 @@ namespace TftpServer::Driver {
             m_socket.sendTo(m_buffer, m_buffer.getLength(), prev_io);
         }
 
+        std::print("tftpd [LOG]: attempted to send error {} to peer with port {}\n", static_cast<int>(error_code), prev_io.data.sin_port);
         m_ctx.done = true;
     }
 

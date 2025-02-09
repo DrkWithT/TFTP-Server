@@ -45,7 +45,7 @@ namespace TftpServer::MyTftp {
     [[nodiscard]] HelperResult<tftp_u16> readU16(const MyBSock::FixedBuffer<T, N>& source, std::size_t begin) {
         tftp_u16 temp = 0;
 
-        if (begin > source.getLength() - 2UL) {
+        if (begin + 2UL > source.getLength()) {
             return {0, dud_payload_num};
         }
 
@@ -115,7 +115,7 @@ namespace TftpServer::MyTftp {
     [[nodiscard]] HelperResult<bool> writeU16(MyBSock::FixedBuffer<T, N>& target, std::size_t begin, tftp_u16 value) {
         const auto network_ord_value = htons(value);
 
-        if (begin > target.getLength() - 2UL) {
+        if (begin + 2UL > target.getSize()) {
             return { false, dud_payload_num };
         }
 
@@ -128,9 +128,9 @@ namespace TftpServer::MyTftp {
     template <Meta::OctetKind T, std::size_t N>
     [[nodiscard]] HelperResult<bool> writeText(MyBSock::FixedBuffer<T, N>& target, std::size_t begin, const std::string& value) {
         const auto value_len = value.size();
-        const auto target_len = target.getLength();
+        const auto target_size = target.getSize();
 
-        if (begin + value_len >= target_len) {
+        if (begin + value_len >= target_size) {
             return { false, dud_payload_num };
         }
 
@@ -139,7 +139,7 @@ namespace TftpServer::MyTftp {
         auto write_offset = begin;
         auto pending_n = value_len;
 
-        while (pending_n > 0 and write_offset < target_len) {
+        while (pending_n > 0 and write_offset < target_size) {
             write_ptr[write_offset] = static_cast<T>(*value_read_ptr);
             pending_n--;
             write_offset++;
@@ -152,9 +152,9 @@ namespace TftpServer::MyTftp {
     template <Meta::OctetKind T, std::size_t N>
     [[nodiscard]] HelperResult<bool> writeBlob(MyBSock::FixedBuffer<T, N>& target, std::size_t begin, const std::u8string& value) {
         const auto value_len = value.size();
-        const auto target_len = target.getLength();
+        const auto target_size = target.getSize();
 
-        if (begin + value_len >= target_len) {
+        if (begin + value_len >= target_size) {
             return { false, dud_payload_num };
         }
 
@@ -163,7 +163,7 @@ namespace TftpServer::MyTftp {
         auto write_offset = begin;
         auto pending_n = value_len;
 
-        while (pending_n > 0 and write_offset < target_len) {
+        while (pending_n > 0 and write_offset < target_size) {
             write_ptr[write_offset] = static_cast<T>(*value_read_ptr);
             pending_n--;
             write_offset++;
