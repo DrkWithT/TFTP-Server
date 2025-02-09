@@ -71,7 +71,11 @@ namespace TftpServer::MyBSock {
             reset();
         }
 
-        [[nodiscard]] T* viewPtr() noexcept {
+        [[nodiscard]] T* getPtr() & noexcept {
+            return m_data.data();
+        }
+
+        [[nodiscard]] const T* getPtr() const& noexcept {
             return m_data.data();
         }
 
@@ -119,7 +123,7 @@ namespace TftpServer::MyBSock {
                 return { nullptr, 0 };
             }
 
-            return { buffer.viewPtr() + begin, length };
+            return { buffer.getPtr() + begin, length };
         }
     };
 }

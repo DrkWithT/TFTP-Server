@@ -122,7 +122,7 @@ namespace TftpServer::Driver {
     ReadResult MyServer::readMessage() {
         m_buffer.reset();
 
-        auto io_result =  m_socket.recieveFrom(m_buffer, io_buffer_size);
+        auto io_result = m_socket.recieveFrom(m_buffer, io_buffer_size);
 
         return {
             MyTftp::parseMessage(m_buffer),

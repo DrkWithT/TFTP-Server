@@ -49,7 +49,8 @@ namespace TftpServer::MyTftp {
             return {0, dud_payload_num};
         }
 
-        std::memcpy(&temp, source.viewPtr() + begin, 2UL);
+        const auto* read_ptr = source.getPtr() + begin;
+        std::memcpy(&temp, read_ptr, 2UL);
 
         temp = ntohs(temp);
 
@@ -65,7 +66,7 @@ namespace TftpServer::MyTftp {
             return {temp, dud_payload_num};
         }
 
-        const auto* read_ptr = source.viewPtr();
+        const auto* read_ptr = source.getPtr();
         auto read_offset = begin;
 
         for (; read_offset < source_len; read_offset++) {
@@ -94,7 +95,7 @@ namespace TftpServer::MyTftp {
             return {temp, dud_payload_num};
         }
 
-        const auto* read_ptr = source.viewPtr();
+        const auto* read_ptr = source.getPtr();
         auto read_offset = begin;
         auto pending_rc = blob_length;
 
@@ -118,7 +119,7 @@ namespace TftpServer::MyTftp {
             return { false, dud_payload_num };
         }
 
-        auto* write_ptr = target.viewPtr();
+        auto* write_ptr = target.getPtr();
         std::memcpy(write_ptr, &network_ord_value, 2UL);
 
         return { true, begin + 2UL };
@@ -134,7 +135,7 @@ namespace TftpServer::MyTftp {
         }
 
         const auto* value_read_ptr = value.c_str();
-        auto* write_ptr = target.viewPtr();
+        auto* write_ptr = target.getPtr();
         auto write_offset = begin;
         auto pending_n = value_len;
 
@@ -158,7 +159,7 @@ namespace TftpServer::MyTftp {
         }
 
         const auto* value_read_ptr = value.c_str();
-        auto* write_ptr = target.viewPtr();
+        auto* write_ptr = target.getPtr();
         auto write_offset = begin;
         auto pending_n = value_len;
 

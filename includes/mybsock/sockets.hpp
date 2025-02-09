@@ -52,7 +52,9 @@ namespace TftpServer::MyBSock {
 
             IOResult temp = {};
 
-            const auto count = recvfrom(m_fd, buffer.viewPtr(), n, 0, reinterpret_cast<sockaddr*>(&temp.data), sizeof(sockaddr_in));
+            auto* read_ptr = buffer.getPtr();
+            socklen_t sa_size = sizeof(sockaddr_in);
+            const auto count = recvfrom(m_fd, read_ptr, n, 0, reinterpret_cast<sockaddr*>(&temp.data), &sa_size);
 
             if (count > 0) {
                 buffer.markLength(count);
@@ -76,7 +78,9 @@ namespace TftpServer::MyBSock {
 
             IOResult temp = prev;
 
-            const auto count = sendto(m_fd, buffer.viewPtr(), n, 0, reinterpret_cast<sockaddr*>(&temp.data), sizeof(sockaddr_in));
+            const auto* read_ptr = buffer.getPtr();
+            socklen_t sa_size = sizeof(sockaddr_in);
+            const auto count = sendto(m_fd, read_ptr, n, 0, reinterpret_cast<sockaddr*>(&temp.data), sa_size);
 
             if (count > 0) {
                 temp.status= IOStatus::ok;
