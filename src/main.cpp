@@ -13,6 +13,7 @@
 #include <thread>
 #include <fstream>
 #include <iostream>
+#include <print>
 #include "mybsock/netconfig.hpp"
 #include "mybsock/buffers.hpp"
 #include "mybsock/sockets.hpp"
@@ -167,7 +168,7 @@ namespace TftpServer::Driver {
 
         /// NOTE: Prepare to service a new peer by TID after the transfer finishes. The peer could be the same or different.
         if (m_ctx.done) {
-            m_ctx.fs.close();
+            m_ctx.fs = {};
             m_ctx.block = 0;
             m_ctx.done = false;
             m_peer_tid = dud_peer_tid;
@@ -336,14 +337,18 @@ namespace TftpServer::Driver {
             } while (stop_choice != 'y');
 
             m_persist.clear();
-            std::cout << "Please wait, as a final request must be served.\n";
+            std::cout << "Please wait...\n";
         };
 
         std::thread control_thread {user_control_fn};
 
-        while (m_persist.test() or not m_ctx.done) {
+        while (m_persist.test()) {
             const auto recieve_result = readMessage();
+
+            std::print("tftpd [LOG]: recieve of IOStatus={}, peer-port={}\n", static_cast<int>(recieve_result.io_data.status), recieve_result.io_data.data.sin_port);
+
             handleMessage(recieve_result);
+            std::print("tftpd [LOG]: replied; peer-tid={}, ctx-block-n={}, ctx-done={}\n", m_peer_tid, m_ctx.block, m_ctx.done);
         }
 
         control_thread.join();
