@@ -14,7 +14,7 @@ namespace TftpServer::MyTftp {
         last = none
     };
 
-    enum class DataMode {
+    enum class DataMode : unsigned char {
         netascii,
         octet,
         mail,
@@ -22,7 +22,7 @@ namespace TftpServer::MyTftp {
         last = dud
     };
 
-    enum class ErrorCode {
+    enum class ErrorCode : unsigned char {
         ok,
         not_defined,
         file_not_found,
