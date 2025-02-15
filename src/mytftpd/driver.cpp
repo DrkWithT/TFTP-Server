@@ -5,6 +5,8 @@
 #include "mytftpd/transaction.hpp"
 #include "mytftpd/driver.hpp"
 
+/// TODO: See RFC 1350, Section 6. Add the required, resending feature for the last DATA message!
+
 namespace TftpServer::Driver {
     static constexpr std::array<std::string_view, static_cast<std::size_t>(MyTftp::ErrorCode::last) + 1> errcode_msgs = {
         "OK",
@@ -50,10 +52,11 @@ namespace TftpServer::Driver {
     }
 
     StateResult<MyTftp::Message> MyServer::stateDecode() {
+        std::print("tftpd: decoding some msg...\n"); // debug
         auto io_info = m_socket.recieveFrom(m_in_buffer, Constants::tftp_msg_size_limit);
         auto msg = MyTftp::parseMessage(m_in_buffer);
 
-        m_state = transition(io_info.status, true, Constants::tftp_msg_size_limit, msg.op);
+        m_state = transition(io_info.status, true, Constants::tftp_chunk_size, msg.op);
 
         return {
             io_info,
@@ -72,6 +75,8 @@ namespace TftpServer::Driver {
         }
 
         if (msg_op == MyTftp::Opcode::rrq) {
+            std::print("tftpd: Handle RRQ...\n"); // debug
+
             // RRQ case
             auto rrq_body = std::get<MyTftp::RWPayload>(msg_body);
 
@@ -88,6 +93,7 @@ namespace TftpServer::Driver {
         } else {
             // ACK case
             auto [ack_block] = std::get<MyTftp::AckPayload>(msg_body);
+            std::print("tftpd: Handle ACK {}\n", ack_block); // debug
 
             if (ack_block != m_context.block) {
                 m_state = transition(ServerState::error);
@@ -99,6 +105,7 @@ namespace TftpServer::Driver {
 
         auto chunk_data = FileUtils::readOctetChunk(m_context.fs);
         const auto chunk_size = chunk_data.size();
+        std::print("tftpd: sending over {}B...\n", chunk_size); // debug
 
         const auto serialize_ok = MyTftp::serializeMessage(m_out_buffer, {
             MyTftp::Opcode::data,
@@ -109,9 +116,11 @@ namespace TftpServer::Driver {
         });
 
         if (serialize_ok) {
+            std::print("tftpd: sending reply...\n"); // debug
             m_socket.sendTo(m_out_buffer, m_out_buffer.getLength(), last_io);
-            m_state = transition(last_io.status, true, chunk_size, MyTftp::Opcode::ack);
+            m_state = transition(last_io.status, true, chunk_size, MyTftp::Opcode::none);
         } else {
+            std::print("tftpd: failed to send reply...\n"); // debug
             m_state = transition(ServerState::error);
         }
 
@@ -119,7 +128,15 @@ namespace TftpServer::Driver {
     }
 
     StateResult<void> MyServer::stateDone(const MyBSock::IOResult& last_io) {
-        m_context = {};
+        std::print("tftpd: Transaction done...\n"); // debug
+        m_context = {
+            {},
+            Constants::tid_dud,
+            0,
+            MyTftp::DataMode::dud
+        };
+        m_state = transition(ServerState::decode);
+
         return { last_io };
     }
 
@@ -127,6 +144,8 @@ namespace TftpServer::Driver {
         const auto msg_op = msg.op;
         MyTftp::ErrorCode errcode = MyTftp::ErrorCode::not_defined;
 
+        std::print("Handle ERROR; had_sio_error={}, errcode={}\n", had_sio_error, static_cast<int>(errcode)); // debug
+        
         if (had_sio_error) {
             errcode = MyTftp::ErrorCode::storage_issue;
         } else if (msg_op < MyTftp::Opcode::rrq or msg_op >= MyTftp::Opcode::last) {
@@ -164,6 +183,7 @@ namespace TftpServer::Driver {
                 std::cin >> choice;
             } while (choice != 'y');
 
+            std::print("tftpd: Stopping, please wait.\n"); // debug
             m_halt.clear();
         };
 
@@ -174,18 +194,16 @@ namespace TftpServer::Driver {
         auto server_io_ok = true;
 
         while (not m_halt.test() and m_state != ServerState::stop) {
-            auto [sio_info, msg] = stateDecode();
-            temp_msg = std::move(msg);
-            temp_sio_info = sio_info;
-
             if (m_state == ServerState::decode) {
-                ;
+                auto [sio_info, msg] = stateDecode();
+                temp_msg = std::move(msg);
+                temp_sio_info = sio_info;
             } else if (m_state == ServerState::download) {
                 auto [prev_sio, io_ok] = stateDownload(temp_sio_info, temp_msg);
                 temp_sio_info = prev_sio;
                 server_io_ok = io_ok;
             } else if (m_state == ServerState::done) {
-                ;
+                temp_sio_info = stateDone(temp_sio_info).io_info;
             } else if (m_state == ServerState::error) {
                 temp_sio_info = stateError(temp_sio_info, server_io_ok, temp_msg).io_info;
             }

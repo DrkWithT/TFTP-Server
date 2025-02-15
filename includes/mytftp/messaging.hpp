@@ -291,14 +291,12 @@ namespace TftpServer::MyTftp {
         auto [field_1_ok, pos_1] = writeText(target, 2UL, filename);
 
         if (not field_1_ok) {
-            target.markLength(0);
             return false;
         }
 
         auto [field_2_ok, pos_2] = writeText(target, pos_1, toFileModeName(filemode));
 
         if (not field_2_ok or pos_2 == dud_payload_num) {
-            target.markLength(0);
             return false;
         }
 
@@ -313,14 +311,12 @@ namespace TftpServer::MyTftp {
         auto [field_1_ok, pos_1] = writeU16(target, 2UL, block_n);
 
         if (not field_1_ok) {
-            target.markLength(0);
             return false;
         }
 
         auto [field_2_ok, pos_2] = writeBlob(target, pos_1, data_blob);
 
         if (not field_2_ok) {
-            target.markLength(0);
             return false;
         }
 
@@ -335,7 +331,6 @@ namespace TftpServer::MyTftp {
         auto [field_1_ok, pos_1] = writeU16(target, 2UL, block_n);
 
         if (not field_1_ok or pos_1 == dud_payload_num) {
-            target.markLength(0);
             return false;
         }
 
@@ -351,14 +346,12 @@ namespace TftpServer::MyTftp {
         auto [field_1_ok, pos_1] = writeU16(target, 2UL, errcode_n);
 
         if (not field_1_ok) {
-            target.markLength(0);
             return false;
         }
 
         auto [field_2_ok, pos_2] = writeText(target, pos_1, msg);
 
         if (not field_2_ok or pos_2 == dud_payload_num) {
-            target.markLength(0);
             return false;
         }
 
@@ -368,13 +361,14 @@ namespace TftpServer::MyTftp {
 
     template <Meta::OctetKind T, std::size_t N>
     [[nodiscard]] bool serializeMessage(MyBSock::FixedBuffer<T, N>& target, const Message& msg) {
+        target.reset();
+
         const auto msg_opcode = msg.op;
         const auto opcode_n = static_cast<tftp_u16>(msg_opcode);
 
         auto [field_0_ok, pos_0] = writeU16(target, 0UL, opcode_n);
 
         if (not field_0_ok or pos_0 == dud_payload_num) {
-            target.markLength(0);
             return false;
         }
 

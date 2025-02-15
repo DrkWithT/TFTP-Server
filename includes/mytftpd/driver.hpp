@@ -1,9 +1,6 @@
 #pragma once
 
 #include <atomic>
-// #include <thread>
-#include <iostream>
-#include <format>
 #include <string_view>
 // #include "mybsock/netconfig.hpp"
 #include "mybsock/buffers.hpp"
@@ -47,19 +44,6 @@ namespace TftpServer::Driver {
         MyBSock::UDPServerSocket m_socket;
         ServerState m_state;
         std::atomic_flag m_halt;
-
-        template <LogLevel L, typename ... Args>
-        void logMessage(const char* fmt_cstr, Args&& ... args) {
-            if constexpr (L == LogLevel::info) {
-                std::cout << "tftpd [INFO]: " << std::format(fmt_cstr, args...);
-            } else if constexpr (L == LogLevel::warning) {
-                std::cout << "tftpd [WARNING]: " << std::format(fmt_cstr, args...);
-            } else if constexpr (L == LogLevel::fatal) {
-                std::cout << "tftpd [FATAL]: " << std::format(fmt_cstr, args...);
-            } else {
-                std::cout << "tftpd [LOG]: ...\n";
-            }
-        }
 
         [[nodiscard]] ServerState transition(ServerState next) noexcept;
         [[nodiscard]] ServerState transition(MyBSock::IOStatus io_status, bool file_io_ok, std::size_t rw_count, MyTftp::Opcode opcode) noexcept;

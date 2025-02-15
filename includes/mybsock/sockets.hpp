@@ -44,7 +44,7 @@ namespace TftpServer::MyBSock {
                 return { {}, IOStatus::pipe_closed };
             }
 
-            if (buffer.isFull() or n > buffer.getSize()) {
+            if (n > buffer.getSize()) {
                 return { {}, IOStatus::invalid_args };
             }
 

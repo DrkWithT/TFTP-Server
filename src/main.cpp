@@ -5,8 +5,9 @@
  * @date 2/05/2025
  */
 
-#include <optional>
+#include <iostream>
 #include <print>
+#include <optional>
 #include "mybsock/netconfig.hpp"
 #include "mybsock/sockets.hpp"
 #include "mytftpd/driver.hpp"

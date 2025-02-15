@@ -48,7 +48,7 @@ namespace TftpServer::MyTftp {
     };
 
     struct AckPayload {
-        unsigned int block_n;
+        unsigned short block_n;
     };
 
     struct ErrorPayload {
